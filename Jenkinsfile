@@ -7,9 +7,11 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "shivasrk/shivasrk-argocd"   // 🔹 Change to your Docker Hub repo
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "docker-cred"        // 🔹 Jenkins credentials ID for Docker Hub
+        IMAGE_NAME = "shivasrk/shivasrk-argocd"     // 🔹 Your Docker Hub repo
+        IMAGE_TAG = "${BUILD_NUMBER}"               // 🔹 Build tag
+        DOCKER_CREDENTIALS = "docker-cred"          // 🔹 Docker credentials ID
+        CONTAINER_NAME = "shiva-app"                // 🔹 Local container name
+        APP_PORT = "8080"                           // 🔹 Host port
     }
 
     stages {
@@ -26,9 +28,7 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 echo '🏗️ Building WAR package...'
-                sh '''
-                    mvn clean package -DskipTests
-                '''
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -66,11 +66,27 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy Docker Container') {
+            steps {
+                echo '🚀 Deploying new Docker container...'
+                sh '''
+                    echo "Stopping old container (if any)..."
+                    docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q . && docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME} || echo "No existing container."
+
+                    echo "Running new container from ${IMAGE_NAME}:${IMAGE_TAG}..."
+                    docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:8080 ${IMAGE_NAME}:${IMAGE_TAG}
+
+                    echo "✅ New container deployed successfully!"
+                    docker ps --filter "name=${CONTAINER_NAME}"
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Docker image built and pushed successfully!'
+            echo '✅ CI/CD pipeline completed successfully!'
         }
         failure {
             echo '❌ Pipeline failed — check the console logs for details.'
