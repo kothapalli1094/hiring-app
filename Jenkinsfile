@@ -1,13 +1,20 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'mvn3'
+        jdk 'jdk17'
+    }
+
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
-        IMAGE_NAME = "kothapalli1094/argocd"  // Change to your DockerHub repo
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')    // Jenkins credentials ID
+        GIT_CREDENTIALS = credentials('git-cred')
+        IMAGE_NAME = "kothapalli1094/argocd"                   // your Docker Hub repo
         VERSION = "v${BUILD_NUMBER}"
     }
 
     stages {
+
         stage('Checkout Code') {
             steps {
                 echo '🔁 Checking out code from GitHub...'
@@ -17,7 +24,7 @@ pipeline {
 
         stage('Build WAR') {
             steps {
-                echo '🏗️ Building WAR file...'
+                echo '🏗️ Building WAR file using Maven...'
                 sh 'mvn clean package -DskipTests'
             }
         }
@@ -50,7 +57,7 @@ pipeline {
             echo "✅ Docker image built and pushed successfully: ${IMAGE_NAME}:${VERSION}"
         }
         failure {
-            echo "❌ Docker image build failed!"
+            echo "❌ Docker image build or push failed!"
         }
     }
 }
