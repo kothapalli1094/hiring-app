@@ -9,9 +9,10 @@ pipeline {
     environment {
         IMAGE_NAME = "shivasrk/shivasrk-argocd"     // 🔹 Your Docker Hub repo
         IMAGE_TAG = "${BUILD_NUMBER}"               // 🔹 Build tag
-        DOCKER_CREDENTIALS = "docker-cred"          // 🔹 Docker credentials ID
+        DOCKER_CREDENTIALS = "dockerhub-cred"       // 🔹 Matches Jenkins credential ID
         CONTAINER_NAME = "shiva-app"                // 🔹 Local container name
         APP_PORT = "8080"                           // 🔹 Host port
+        HEALTHCHECK_URL = "http://localhost:8080/hiring/" // 🔹 Tomcat context path
     }
 
     stages {
@@ -71,10 +72,10 @@ pipeline {
             steps {
                 echo '🚀 Deploying new Docker container...'
                 sh '''
-                    echo "Stopping old container (if any)..."
-                    docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q . && docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME} || echo "No existing container."
+                    echo "🛑 Stopping and removing old container (if any)..."
+                    docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q . && docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME} || echo "No existing container found."
 
-                    echo "Running new container from ${IMAGE_NAME}:${IMAGE_TAG}..."
+                    echo "🚀 Running new container from ${IMAGE_NAME}:${IMAGE_TAG}..."
                     docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:8080 ${IMAGE_NAME}:${IMAGE_TAG}
 
                     echo "✅ New container deployed successfully!"
@@ -82,11 +83,35 @@ pipeline {
                 '''
             }
         }
+
+        stage('Health Check') {
+            steps {
+                echo '🔍 Performing health check...'
+                script {
+                    def retries = 10
+                    def success = false
+                    for (int i = 1; i <= retries; i++) {
+                        def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' ${HEALTHCHECK_URL}", returnStdout: true).trim()
+                        if (status == '200') {
+                            echo "✅ Application is healthy! (HTTP 200)"
+                            success = true
+                            break
+                        } else {
+                            echo "⏳ Attempt ${i}/${retries}: App not ready yet (status: ${status}). Retrying in 5s..."
+                            sleep 5
+                        }
+                    }
+                    if (!success) {
+                        error("❌ Health check failed! Application did not respond with HTTP 200.")
+                    }
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ CI/CD pipeline completed successfully!'
+            echo '✅ CI/CD pipeline completed successfully — application is live!'
         }
         failure {
             echo '❌ Pipeline failed — check the console logs for details.'
