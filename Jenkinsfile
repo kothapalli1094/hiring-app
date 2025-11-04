@@ -7,10 +7,9 @@ pipeline {
     }
 
     environment {
-        // ✅ Change these as per your setup
         IMAGE_NAME = "shivasrk/shivasrk-argocd"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "docker-cred"   // Jenkins Docker Hub credentials ID
+        DOCKER_CREDENTIALS = "docker-cred"
     }
 
     stages {
@@ -27,17 +26,23 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 echo '🏗️ Building WAR package...'
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                    mvn clean package -DskipTests
+                    mv target/hiring.war target/shiva-app.war
+                '''
+            }
+        }
+
+        stage('Verify WAR File') {
+            steps {
+                sh 'ls -l target/'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image...'
-                sh """
-                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                docker images | grep ${IMAGE_NAME}
-                """
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
@@ -49,11 +54,11 @@ pipeline {
                 echo '📤 Pushing Docker image to Docker Hub...'
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: "DOCKER_USER", passwordVariable: "DOCKER_PASS")]) {
                     sh """
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                    docker push ${IMAGE_NAME}:latest
-                    docker logout
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout
                     """
                 }
             }
