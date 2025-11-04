@@ -16,11 +16,12 @@ pipeline {
     stages {
 
         stage('Checkout Code') {
-            steps {
-                echo '🔁 Checking out code from GitHub...'
-                git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/kothapalli1094/shiva-app.git'
+           steps {
+               echo '🔁 Checking out code from hiring-app repo...'
+               checkout scm
             }
         }
+
 
         stage('Build WAR') {
             steps {
