@@ -1,8 +1,8 @@
 FROM tomcat:9-jdk17
-LABEL maintainer="shivakothapalli94@gmail.com"
+LABEL maintainer="shiva"
 
 # Copy WAR file to Tomcat webapps directory
-COPY shiva-app.war /usr/local/tomcat/webapps/shiva-app.war
+COPY target/hiring.war /usr/local/tomcat/webapps/hiring.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
