@@ -9,7 +9,7 @@ pipeline {
     environment {
         IMAGE_NAME = "shivasrk/shivasrk-argocd"   // 🔹 Change to your Docker Hub repo
         IMAGE_TAG = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "docker-cred"        // 🔹 Jenkins credentials ID for Docker Hub
+        DOCKER_CREDENTIALS = "dockerhub-cred"        // 🔹 Jenkins credentials ID for Docker Hub
     }
 
     stages {
