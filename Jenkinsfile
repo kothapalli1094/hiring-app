@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
-        IMAGE_NAME = "kothapalli1094/shiva-app"  // Change to your DockerHub repo
+        IMAGE_NAME = "kothapalli1094/argocd"  // Change to your DockerHub repo
         VERSION = "v${BUILD_NUMBER}"
     }
 
