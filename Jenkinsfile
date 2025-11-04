@@ -7,9 +7,9 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "shivasrk/shivasrk-argocd"
+        IMAGE_NAME = "shivasrk/shivasrk-argocd"   // 🔹 Change to your Docker Hub repo
         IMAGE_TAG = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "docker-cred"
+        DOCKER_CREDENTIALS = "docker-cred"        // 🔹 Jenkins credentials ID for Docker Hub
     }
 
     stages {
@@ -28,13 +28,13 @@ pipeline {
                 echo '🏗️ Building WAR package...'
                 sh '''
                     mvn clean package -DskipTests
-                    mv target/hiring.war target/shiva-app.war
                 '''
             }
         }
 
         stage('Verify WAR File') {
             steps {
+                echo '📂 Verifying WAR artifact...'
                 sh 'ls -l target/'
             }
         }
@@ -43,7 +43,6 @@ pipeline {
             steps {
                 echo '🐳 Building Docker image...'
                 sh '''
-                    cp target/shiva-app.war .
                     export DOCKER_BUILDKIT=0
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
@@ -71,10 +70,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Docker image build and push completed successfully!'
+            echo '✅ Docker image built and pushed successfully!'
         }
         failure {
-            echo '❌ Docker image build failed — check the console logs.'
+            echo '❌ Pipeline failed — check the console logs for details.'
         }
     }
 }
