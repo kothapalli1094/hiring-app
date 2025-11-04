@@ -7,25 +7,26 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')    // Jenkins credentials ID
-        GIT_CREDENTIALS = credentials('git-cred')
-        IMAGE_NAME = "kothapalli1094/argocd"                   // your Docker Hub repo
-        VERSION = "v${BUILD_NUMBER}"
+        // ✅ Change these as per your setup
+        IMAGE_NAME = "shivasrk/shivasrk-argocd"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_CREDENTIALS = "docker-cred"   // Jenkins Docker Hub credentials ID
     }
 
     stages {
 
         stage('Checkout Code') {
-           steps {
-               echo '🔁 Checking out code from hiring-app repo...'
-               checkout scm
+            steps {
+                echo '🔁 Checking out code from GitHub...'
+                git branch: 'main',
+                    credentialsId: 'git-cred',
+                    url: 'https://github.com/kothapalli1094/hiring-app.git'
             }
         }
 
-
-        stage('Build WAR') {
+        stage('Build with Maven') {
             steps {
-                echo '🏗️ Building WAR file using Maven...'
+                echo '🏗️ Building WAR package...'
                 sh 'mvn clean package -DskipTests'
             }
         }
@@ -34,31 +35,37 @@ pipeline {
             steps {
                 echo '🐳 Building Docker image...'
                 sh """
-                docker build -t ${IMAGE_NAME}:${VERSION} .
-                docker tag ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:latest
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                docker images | grep ${IMAGE_NAME}
                 """
             }
         }
 
         stage('Push Docker Image') {
+            when {
+                expression { return env.DOCKER_CREDENTIALS != null }
+            }
             steps {
-                echo '🚀 Pushing Docker image to Docker Hub...'
-                sh """
-                echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
-                docker push ${IMAGE_NAME}:${VERSION}
-                docker push ${IMAGE_NAME}:latest
-                docker logout
-                """
+                echo '📤 Pushing Docker image to Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: "DOCKER_USER", passwordVariable: "DOCKER_PASS")]) {
+                    sh """
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${IMAGE_NAME}:latest
+                    docker logout
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ Docker image built and pushed successfully: ${IMAGE_NAME}:${VERSION}"
+            echo '✅ Docker image build and push completed successfully!'
         }
         failure {
-            echo "❌ Docker image build or push failed!"
+            echo '❌ Docker image build failed — check the console logs.'
         }
     }
 }
