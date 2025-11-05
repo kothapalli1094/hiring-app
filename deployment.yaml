@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hiring-app
+  labels:
+    app: hiring-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hiring-app
+  template:
+    metadata:
+      labels:
+        app: hiring-app
+    spec:
+      containers:
+        - name: hiring-app
+          image: shivasrk/shivasrk-argocd:latest   # ✅ Docker image pushed from Jenkins
+          ports:
+            - containerPort: 8080
+          imagePullPolicy: Always
+---
